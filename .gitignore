@@ -1,0 +1,12 @@
+# Things that git should not commit 
+
+# Files to ignore 
+*.o
+*.bin
+*.xcl
+*.pbi
+
+# Folders to ignore
+**/Debug/
+**/rc-circuit-breaker/
+**/settings/
