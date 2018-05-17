@@ -41,22 +41,23 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32l1xx_hal.h"
 #include "stm32l152c_discovery_glass_lcd.h" 
-
-/* USER CODE BEGIN Includes */
-
-/* USER CODE END Includes */
+#include "gpio.h"
+#include "math.h"
+#include "string.h"
 
 extern LCD_HandleTypeDef hlcd;
 
-/* USER CODE BEGIN Private defines */
-
-/* USER CODE END Private defines */
-
+/* Function declarations -----------------------------------------------------*/
 extern void Error_Handler(void);
 
 void MX_LCD_Init(void);
 void lcd_display_str(uint8_t* ptr);
 void lcd_display_int(int val); 
+void lcd_display_float(float val);
+void lcd_display_percentage(float val);
+void lcd_display_str_delayed(uint8_t* ptr, int delay_time);
+void lcd_display_int_delayed(int val, int delay_time);
+void lcd_display_float_delayed(float val, int delay_time);
 void lcd_ui_mockup(void); 
 
 /* USER CODE BEGIN Prototypes */

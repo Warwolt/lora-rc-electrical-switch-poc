@@ -209,3 +209,44 @@ void rfm96_send_packet(void)
 	/* Clear interrupt request flags */
 	rfm96_write_reg(REG_IRQ_FLAGS, IRQ_TX_DONE_MASK);
 }
+
+/* Package receive functions -------------------------------------------------*/
+/*
+ *  brief   : receives package from RFM96 if available, else turns on RX mode
+ *  rx_buff : pointer to buffer to receive data, caller is responsible for 
+ *            allocaing enough data for the buffer! Max payload is 255 bytes
+ *  retval  : length of received package in byte, 0 if no package arrived
+ */
+uint8_t rfm96_receive_package(uint8_t* rx_buff)
+{
+	/* Setup variables  */
+	uint8_t packet_length = 0;
+	uint8_t irq_flags = rfm96_read_reg(REG_IRQ_FLAGS);
+
+	/* Clear IRQ's */
+	rfm96_write_reg(REG_IRQ_FLAGS, irq_flags);
+
+	/* Check if a package has arrived */
+	if((irq_flags & IRQ_RX_DONE_MASK) && (irq_flags & IRQ_PAYLOAD_CRC_ERROR_MASK) == 0)
+	{
+		/* Read payload length from package header */
+		packet_length = rfm96_read_reg(REG_RX_NB_BYTES);
+
+		/* Set FIFO buffer pointer to current RX address */
+		rfm96_write_reg(REG_FIFO_ADDR_PTR, rfm96_read_reg(REG_FIFO_RX_CURRENT_ADDR));
+
+		/* Rx done, return radio chip to standby mode */
+		rfm96_standby_mode();
+	}
+	/* If not already in receive mode, switch to it if no package's arrived */ 
+	else if(rfm96_read_reg(REG_OP_MODE) != (MODE_LONG_RANGE_MODE | MODE_RX_SINGLE))
+	{
+		/* Reset the FIFO buffer address pointer */
+		rfm96_write_reg(REG_FIFO_ADDR_PTR, 0);
+
+		/* Set radio chip to single receive mode */
+		rfm96_write_reg(REG_OP_MODE, MODE_LONG_RANGE_MODE | MODE_RX_SINGLE);
+	}	
+
+	return packet_length;
+}

@@ -34,6 +34,9 @@ void rfm96_begin_packet(void);
 size_t rfm96_write_packet(const uint8_t *payload, size_t size);
 void rfm96_send_packet(void);
 
+/* Receive */
+uint8_t rfm96_receive_package(uint8_t* rx_buff);
+
 /* Defines -------------------------------------------------------------------*/
 /* Hardware definitions */
 #define RFM96_FREQUENCY          433000000 // 433 MHz

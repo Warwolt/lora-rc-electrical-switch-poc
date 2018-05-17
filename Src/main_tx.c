@@ -10,14 +10,7 @@
 #include "main.h" 
 
 /* Private variables ---------------------------------------------------------*/
-// dev test
-union buffer_union
-{
-	uint8_t buffer[2];
-	uint16_t num;
-};
-
-static union buffer_union sent_packages;
+static union two_byte_union package_id;
 
 /* Function declarations -----------------------------------------------------*/
 /**
@@ -42,14 +35,23 @@ int main(void)
 	while(1)
 	{	
 	  	/* Display number of sent packages */
-		sent_packages.num++;
-		lcd_display_int((int)sent_packages.num);
+		package_id.num++;
+		lcd_display_int((int)package_id.num);
 
 		/* Send a package */
 		rfm96_begin_packet();
-		rfm96_write_packet(sent_packages.buffer, 2);
+		rfm96_write_packet(package_id.buffer, 2);
 		rfm96_send_packet();
 	}
+}
+
+/*
+ * brief : small helper function that polls the user button for a press 
+ */
+void wait_for_user_button(void)
+{
+	while(BSP_PB_GetState(BUTTON_USER) != 0);
+	while(BSP_PB_GetState(BUTTON_USER) != 1);
 }
 
 /**

@@ -10,62 +10,17 @@
 #include "main.h" 
 
 /* Private variables ---------------------------------------------------------*/
-//static uint8_t rx_buff[MAX_PKT_LENGTH];
-static int8_t pkt_rssi;
-static int8_t pkt_snr;
-
-// dev test
-// rember to move this definition somewhere else, Don't Repeat Yourself!
-union buffer_union
-{
-	uint8_t buffer[2];
-	uint16_t num;
-};
-
-static union buffer_union received_packages; 
+static union two_byte_union package_id; 
+static uint16_t num_pkts;
+static int8_t rssi_list[EXPECTED_NUM_PACKAGES];
+static int8_t snr_list[EXPECTED_NUM_PACKAGES];
+static double rssi_mean;
+static double rssi_std;
+static double snr_mean;
+static double snr_std;
+static float pdr; // packet delivery rate 
 
 /* Function declarations -----------------------------------------------------*/
-/*
- *  brief   : receives package from RFM96 if available, else turns on RX mode
- *  rx_buff : pointer to buffer to receive data, caller is responsible for 
- *            allocaing enough data for the buffer! Max payload is 255 bytes
- *  retval  : length of received package in byte, 0 if no package arrived
- */
-uint8_t rfm96_receive_package(uint8_t* rx_buff)
-{
-	/* Setup variables  */
-	uint8_t packet_length = 0;
-	uint8_t irq_flags = rfm96_read_reg(REG_IRQ_FLAGS);
-
-	/* Clear IRQ's */
-	rfm96_write_reg(REG_IRQ_FLAGS, irq_flags);
-
-	/* Check if a package has arrived */
-	if((irq_flags & IRQ_RX_DONE_MASK) && (irq_flags & IRQ_PAYLOAD_CRC_ERROR_MASK) == 0)
-	{
-		/* Read payload length from package header */
-		packet_length = rfm96_read_reg(REG_RX_NB_BYTES);
-
-		/* Set FIFO buffer pointer to current RX address */
-	rfm96_write_reg(REG_FIFO_ADDR_PTR, rfm96_read_reg(REG_FIFO_RX_CURRENT_ADDR));
-
-	/* Rx done, return radio chip to standby mode */
-	rfm96_standby_mode();
-	}
-	/* If not already in receive mode, switch to it if no package's arrived */ 
-	else if(rfm96_read_reg(REG_OP_MODE) != (MODE_LONG_RANGE_MODE | MODE_RX_SINGLE))
-	{
-		/* Reset the FIFO buffer address pointer */
-		rfm96_write_reg(REG_FIFO_ADDR_PTR, 0);
-
-		/* Set radio chip to single receive mode */
-		rfm96_write_reg(REG_OP_MODE, MODE_LONG_RANGE_MODE | MODE_RX_SINGLE);
-	}	
-
-	return packet_length;
-}
-
-
 /**
 	* @brief  Main program
 	* @param  None
@@ -82,70 +37,106 @@ int main(void)
 	/* Wait for button push */
 	lcd_display_str("RXMODE");
 	
-	/* Infinite loop */
+	/* Set up variables */
 	uint8_t packet_length;
 	uint8_t packet_index;
 	uint8_t rx_buff[MAX_PKT_LENGTH];
-	while(1)
+
+	/* Receive 1000 packages */
+	while(num_pkts < EXPECTED_NUM_PACKAGES)
 	{	
-		packet_index = 0;
-
-		// TODO: put this into its own function later when this code's working
-		/* Single Rx Function ------------------------------------------------*/
-		// /* Setup variables  */
-  // 		uint8_t packet_length = 0;
-  // 		uint8_t irq_flags = rfm96_read_reg(REG_IRQ_FLAGS);
-
-  // 		  		/* Clear IRQ's */
-  // 		rfm96_write_reg(REG_IRQ_FLAGS, irq_flags);
-
-  // 		/* Check if a package has arrived */
-  // 		if((irq_flags & IRQ_RX_DONE_MASK) && (irq_flags & IRQ_PAYLOAD_CRC_ERROR_MASK) == 0)
-  // 		{
-  // 			/* Read payload length from package header */
-  // 			packet_length = rfm96_read_reg(REG_RX_NB_BYTES);
-
-  // 			/* Set FIFO buffer pointer to current RX address */
-  //   		rfm96_write_reg(REG_FIFO_ADDR_PTR, rfm96_read_reg(REG_FIFO_RX_CURRENT_ADDR));
-
-  //   		/* Rx done, return radio chip to standby mode */
-  //   		rfm96_standby_mode();
-  // 		}
-  // 		/* If not already in receive mode, switch to it if no package's arrived */ 
-  // 		else if(rfm96_read_reg(REG_OP_MODE) != (MODE_LONG_RANGE_MODE | MODE_RX_SINGLE))
-  // 		{
-  // 			/* Reset the FIFO buffer address pointer */
-  // 			rfm96_write_reg(REG_FIFO_ADDR_PTR, 0);
-
-  // 			/* Set radio chip to single receive mode */
-  // 			rfm96_write_reg(REG_OP_MODE, MODE_LONG_RANGE_MODE | MODE_RX_SINGLE);
-  // 		}
-
+		/* Receive package if available, else set radio chip in RX mode */
 		packet_length = rfm96_receive_package(rx_buff);
 		
-  		/* Main while loop ---------------------------------------------------*/
-  		/* Extract payload if package is ready */
+ 		/* Extract payload if package is ready */
   		if(packet_length > 0)
   		{
 			/* Read received package */
   			while(rfm96_read_reg(REG_RX_NB_BYTES) - packet_index)
   			{
   				/* Read next received byte from FIFO */
-  				received_packages.buffer[packet_index] = rfm96_read_reg(REG_FIFO);
+  				package_id.buffer[packet_index] = rfm96_read_reg(REG_FIFO);
   				packet_index++;
   			}
+
+  			/* Increment received package counter */
+  			num_pkts++;
 			
 			/* Read package RSSI and SNR */
-			pkt_rssi = -137 + rfm96_read_reg(REG_PKT_RSSI_VALUE);
-			pkt_snr = (int8_t)(rfm96_read_reg(REG_PKT_SNR_VALUE) * 0.25);
+			// change this so it adds values to lists instead 
+			rssi_list[num_pkts-1] = -137 + rfm96_read_reg(REG_PKT_RSSI_VALUE);
+			snr_list[num_pkts-1] = (int8_t)(rfm96_read_reg(REG_PKT_SNR_VALUE) * 0.25);
 
 			// dev test, display package
-			lcd_display_int(received_packages.num);
+			lcd_display_int(num_pkts);
 		
-			/* Wait a bit, then continue */
-			// HAL_Delay(10);
+			/* Reset package index */
+			packet_index = 0;
   		}  		
   	}
+
+  	/* Mean and standard deviation for RSSI */
+  	rssi_mean = mean(rssi_list, EXPECTED_NUM_PACKAGES);
+  	rssi_std = std_dev(rssi_list, EXPECTED_NUM_PACKAGES, rssi_mean);
+
+  	/* Mean and standard deviation for SNR */
+	snr_mean = mean(snr_list, EXPECTED_NUM_PACKAGES);
+  	snr_std = std_dev(snr_list, EXPECTED_NUM_PACKAGES, rssi_mean);
+  	
+  	/* Packet delivery rate */
+  	pdr = package_id.num / EXPECTED_NUM_PACKAGES;
+
+  	/* Signal results ready to be displayed */
+	lcd_display_str_delayed("RXDONE", DISPLAY_DELAY); 
+
+  	/* Show results on display */
+  	while(1)
+  	{
+  		/* Last Package ID*/
+		lcd_display_str_delayed("LASTID", DISPLAY_DELAY);
+		lcd_display_int(package_id.num); 
+  		wait_for_user_button();
+
+  		/* Payload Delivery Rate */
+		lcd_display_str_delayed("PDR", DISPLAY_DELAY);
+		lcd_display_percentage(pdr); 
+  		wait_for_user_button();
+
+  		/* Arithmetic mean for RSSI */
+		lcd_display_str_delayed("RSSI", DISPLAY_DELAY);
+		lcd_display_str_delayed("MEAN", DISPLAY_DELAY);
+		lcd_display_float(rssi_mean); 
+  		wait_for_user_button();
+
+  		/* Standard deviation for RSSI */
+		lcd_display_str_delayed("RSSI", DISPLAY_DELAY);
+		lcd_display_str_delayed("STD", DISPLAY_DELAY);
+		lcd_display_float(rssi_std);
+  		wait_for_user_button();
+
+  		/* Arithmetic mean SNR */
+		lcd_display_str_delayed("SNR", DISPLAY_DELAY);
+		lcd_display_str_delayed("MEAN", DISPLAY_DELAY);
+		lcd_display_float(snr_mean);
+  		wait_for_user_button();
+
+  		/* Standard deviation for SNR */
+		lcd_display_str_delayed("SNR", DISPLAY_DELAY);
+		lcd_display_str_delayed("STD", DISPLAY_DELAY);
+		lcd_display_float(snr_std);
+  		wait_for_user_button();
+ 	}
+}
+
+
+
+/*
+ * brief : small helper function that polls the user button for a press 
+ */
+void wait_for_user_button(void)
+{
+	while(BSP_PB_GetState(BUTTON_USER) != 0);
+	while(BSP_PB_GetState(BUTTON_USER) != 1);
 }
 
 /**

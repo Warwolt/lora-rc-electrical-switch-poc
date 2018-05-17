@@ -90,3 +90,26 @@ void Error_Handler(void)
 	}
 	/* USER CODE END Error_Handler */ 
 }
+
+/* Statistics ----------------------------------------------------------------*/
+double mean(int8_t a[], uint8_t n)
+{
+	double sum = 0.0;
+	for(int i = 0; i < n; i++)
+	{
+		sum += (double)a[i] / n;
+	}
+	return sum;
+}
+
+double std_dev(int8_t a[], uint8_t n, double mean) 
+{
+	double sum = 0.0;
+	double diff = 0.0;
+	for(int i = 0; i < n; i++)
+	{
+		diff = a[i] - mean;
+		sum += (diff * diff) / n;
+	}
+	return sqrt(sum);
+}
