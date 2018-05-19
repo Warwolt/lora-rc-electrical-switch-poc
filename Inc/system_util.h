@@ -13,3 +13,6 @@ void Error_Handler(void);
 void system_init(void);
 double mean(int8_t a[], uint8_t n);
 double std_dev(int8_t a[], uint8_t n, double mean);
+void wait_for_user_button(void);
+uint32_t wait_for_user_button_timed(void);
+

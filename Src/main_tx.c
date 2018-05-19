@@ -24,7 +24,18 @@ int main(void)
 	system_init();
 
 	/* Initialize the RFM96 LoRa radio chip */
-	rfm96_init();
+	if(rfm96_init() == 0)
+	{
+		/* SPI connection error */
+		lcd_display_str("BADSPI");
+		while(1);
+	}
+	else
+	{
+		/* Signal boot ok */
+		lcd_display_str("BOOTOK");
+		HAL_Delay(1000);
+	}
 	
 	/* Wait for button push */
 	lcd_display_str("ready");
@@ -43,15 +54,6 @@ int main(void)
 		rfm96_write_packet(package_id.buffer, 2);
 		rfm96_send_packet();
 	}
-}
-
-/*
- * brief : small helper function that polls the user button for a press 
- */
-void wait_for_user_button(void)
-{
-	while(BSP_PB_GetState(BUTTON_USER) != 0);
-	while(BSP_PB_GetState(BUTTON_USER) != 1);
 }
 
 /**

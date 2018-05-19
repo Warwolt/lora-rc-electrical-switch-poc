@@ -97,19 +97,54 @@ double mean(int8_t a[], uint8_t n)
 	double sum = 0.0;
 	for(int i = 0; i < n; i++)
 	{
-		sum += (double)a[i] / n;
+		sum += (double)a[i] / (double)n;
 	}
 	return sum;
 }
 
-double std_dev(int8_t a[], uint8_t n, double mean) 
+/* Calculates sample variance */
+double variance(int8_t a[], uint8_t n, double mean) 
 {
 	double sum = 0.0;
 	double diff = 0.0;
 	for(int i = 0; i < n; i++)
 	{
-		diff = a[i] - mean;
-		sum += (diff * diff) / n;
+		diff = (double)a[i] - mean;
+		sum += (diff * diff);
 	}
-	return sqrt(sum);
+	sum /= (double)(n - 1);
+	return sum;
+}
+
+/* Calculates sample standard deviation */
+double std_dev(int8_t a[], uint8_t n, double mean) 
+{
+	return sqrt(variance(a, n, mean));
+}
+
+/* Button pushing ------------------------------------------------------------*/
+
+/*
+ * brief : small helper function that polls the user button for a press 
+ */
+void wait_for_user_button(void)
+{
+	while(BSP_PB_GetState(BUTTON_USER) != 0);
+	while(BSP_PB_GetState(BUTTON_USER) != 1);
+}
+
+/*
+ * brief  : small helper function that polls the user button for a press 
+ * retval : time in sysclock ticks that the button was held (should be ms) 
+ */
+uint32_t wait_for_user_button_timed(void)
+{
+	uint32_t tickstart;
+
+	while(BSP_PB_GetState(BUTTON_USER) != 0); // make sure button wasn't held 
+	while(BSP_PB_GetState(BUTTON_USER) != 1); // wait for button push
+	tickstart = HAL_GetTick(); // check how long button is held 
+	while(BSP_PB_GetState(BUTTON_USER) != 0); // wait for button release 
+
+	return (HAL_GetTick() - tickstart); // return how long button was held 
 }

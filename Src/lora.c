@@ -14,7 +14,7 @@
 /* 
  * brief : initializes the RFM96 radio chip 
  */
-void rfm96_init(void)
+uint8_t rfm96_init(void)
 {
 	/* Set NSS, disable radio chip  */
 	HAL_GPIO_WritePin(RFM96_NSS_PORT, RFM96_NSS_PIN, GPIO_PIN_SET);
@@ -46,13 +46,14 @@ void rfm96_init(void)
 	/* Turn on automatic gain control */
 	rfm96_write_reg(REG_MODEM_CONFIG_3, 0x04);
 	
-	/* Set output power to 10 dBm */
+	/* Set output power to 8 dBm */
 	rfm96_write_reg(REG_PA_CONFIG, PA_BOOST | (RFM96_TX_POWER - 2));
 
 	/* Set code rate and bandwidth */
 	uint8_t config_1_val = rfm96_read_reg(REG_MODEM_CONFIG_1);
-	config_1_val = (config_1_val & 0x0F) | (0x7 << 4); //0x7 = bandwidth 125 kHz
+	config_1_val = (config_1_val & 0x0F) | (0x1 << 4); //0x1 = bandwidth 10.4kHz
 	config_1_val = (config_1_val & 0xF1) | (0x4 << 1); //0x4 = code rate 4/8
+	//config_1_val = (config_1_val & 0xFE) | (0x1 << 0); //0x1 = implicit header
 	rfm96_write_reg(REG_MODEM_CONFIG_1, config_1_val);
 
 	/* Set spread factor */
@@ -67,7 +68,7 @@ void rfm96_init(void)
 	/* Put in standby mode */
 	rfm96_standby_mode();
 
-	return;
+	return debug_val;
 }
 /* SPI communication functions -----------------------------------------------*/
 /*

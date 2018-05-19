@@ -12,8 +12,8 @@
 /* Private variables ---------------------------------------------------------*/
 static union two_byte_union package_id; 
 static uint16_t num_pkts;
-static int8_t rssi_list[EXPECTED_NUM_PACKAGES];
-static int8_t snr_list[EXPECTED_NUM_PACKAGES];
+static int8_t rssi_list[MAX_EXPECTED_NUM_PACKAGES];
+static int8_t snr_list[MAX_EXPECTED_NUM_PACKAGES];
 static double rssi_mean;
 static double rssi_std;
 static double snr_mean;
@@ -32,18 +32,53 @@ int main(void)
 	system_init();
 
 	/* Initialize the RFM96 LoRa radio chip */
-	rfm96_init();
+	if(rfm96_init() == 0)
+	{
+		/* SPI connection error */
+		lcd_display_str("BADSPI");
+		while(1);
+	}
+	else
+	{
+		/* Signal boot ok */
+		lcd_display_str("BOOTOK");
+		HAL_Delay(1000);
+	}
 
-	/* Wait for button push */
-	lcd_display_str("RXMODE");
+	/* User selects number of expected packages*/
+	uint32_t ticks_held = 0;
+	uint32_t expected_pkts = 10;
+	lcd_display_str_delayed("CHOOSE", 500);
+	lcd_display_str_delayed("NUM", 500); 
+	lcd_display_str_delayed("PKTS", 600); 
+	while(ticks_held < BUTTON_HELD_LONG)
+	{
+		/* Display current mode */
+		lcd_display_int(expected_pkts);
+		/* Poll button */
+		ticks_held = wait_for_user_button_timed();
+		/* If short press, update mode */
+		if(ticks_held < BUTTON_HELD_LONG)
+		{
+			expected_pkts *= 10; // modes are 10, 100, 1000
+			if(expected_pkts > 1000) // mode after 1000 is 10 
+				expected_pkts = 10; 
+		}
+	}
+	lcd_display_str_delayed("YOU", 250);
+	lcd_display_str_delayed("CHOSE", 250);
+	lcd_display_int_delayed(expected_pkts, 500);
+
+	/* Signal start of receive mode, waiting for first packet */
+	lcd_display_str("RXWAIT");
 	
 	/* Set up variables */
 	uint8_t packet_length;
 	uint8_t packet_index;
 	uint8_t rx_buff[MAX_PKT_LENGTH];
 
-	/* Receive 1000 packages */
-	while(num_pkts < EXPECTED_NUM_PACKAGES)
+	/* Receive packages */
+	while(num_pkts < expected_pkts)
 	{	
 		/* Receive package if available, else set radio chip in RX mode */
 		packet_length = rfm96_receive_package(rx_buff);
@@ -63,11 +98,10 @@ int main(void)
   			num_pkts++;
 			
 			/* Read package RSSI and SNR */
-			// change this so it adds values to lists instead 
 			rssi_list[num_pkts-1] = -137 + rfm96_read_reg(REG_PKT_RSSI_VALUE);
 			snr_list[num_pkts-1] = (int8_t)(rfm96_read_reg(REG_PKT_SNR_VALUE) * 0.25);
 
-			// dev test, display package
+			/* Display current number of received packages */
 			lcd_display_int(num_pkts);
 		
 			/* Reset package index */
@@ -76,15 +110,15 @@ int main(void)
   	}
 
   	/* Mean and standard deviation for RSSI */
-  	rssi_mean = mean(rssi_list, EXPECTED_NUM_PACKAGES);
-  	rssi_std = std_dev(rssi_list, EXPECTED_NUM_PACKAGES, rssi_mean);
+  	rssi_mean = mean(rssi_list, expected_pkts);
+  	rssi_std = std_dev(rssi_list, expected_pkts, rssi_mean);
 
   	/* Mean and standard deviation for SNR */
-	snr_mean = mean(snr_list, EXPECTED_NUM_PACKAGES);
-  	snr_std = std_dev(snr_list, EXPECTED_NUM_PACKAGES, rssi_mean);
+	snr_mean = mean(snr_list, expected_pkts);
+  	snr_std = std_dev(snr_list, expected_pkts, rssi_mean);
   	
   	/* Packet delivery rate */
-  	pdr = package_id.num / EXPECTED_NUM_PACKAGES;
+  	pdr = package_id.num / expected_pkts;
 
   	/* Signal results ready to be displayed */
 	lcd_display_str_delayed("RXDONE", DISPLAY_DELAY); 
@@ -126,17 +160,6 @@ int main(void)
 		lcd_display_float(snr_std);
   		wait_for_user_button();
  	}
-}
-
-
-
-/*
- * brief : small helper function that polls the user button for a press 
- */
-void wait_for_user_button(void)
-{
-	while(BSP_PB_GetState(BUTTON_USER) != 0);
-	while(BSP_PB_GetState(BUTTON_USER) != 1);
 }
 
 /**
