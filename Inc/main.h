@@ -18,9 +18,11 @@
 #include "lcd.h"
 
 /* Defines -------------------------------------------------------------------*/
-#define DISPLAY_DELAY          800  // ms
-#define MAX_EXPECTED_NUM_PACKAGES  (uint8_t)1000	
-#define BUTTON_HELD_LONG       500 // ms
+#define DISPLAY_DELAY              800  // ms
+#define BUTTON_HELD_LONG           500  // ms
+#define MAX_EXPECTED_NUM_PACKAGES  1000	
+#define LED_GREEN                  LED3
+#define LED_BLUE                   LED4
 
 /* Unions --------------------------------------------------------------------*/
 union two_byte_union

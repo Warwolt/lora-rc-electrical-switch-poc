@@ -40,7 +40,7 @@ uint8_t rfm96_receive_package(uint8_t* rx_buff);
 /* Defines -------------------------------------------------------------------*/
 /* Hardware definitions */
 #define RFM96_FREQUENCY          433000000 // 433 MHz
-#define RFM96_TX_POWER           8        // dBm
+#define RFM96_TX_POWER           10        // dBm
 #define MAX_PKT_LENGTH           255       // bytes
 
 /* SPI access mode */

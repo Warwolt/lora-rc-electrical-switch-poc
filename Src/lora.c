@@ -49,26 +49,26 @@ uint8_t rfm96_init(void)
 	/* Set output power to 8 dBm */
 	rfm96_write_reg(REG_PA_CONFIG, PA_BOOST | (RFM96_TX_POWER - 2));
 
-	/* Set code rate and bandwidth */
+	/* Set code rate, bandwidth and header mode */
 	uint8_t config_1_val = rfm96_read_reg(REG_MODEM_CONFIG_1);
-	config_1_val = (config_1_val & 0x0F) | (0x1 << 4); //0x1 = bandwidth 10.4kHz
+	config_1_val = (config_1_val & 0x0F) | (0x7 << 4); //0x7 = bandwidth 125kHz
 	config_1_val = (config_1_val & 0xF1) | (0x4 << 1); //0x4 = code rate 4/8
-	//config_1_val = (config_1_val & 0xFE) | (0x1 << 0); //0x1 = implicit header
 	rfm96_write_reg(REG_MODEM_CONFIG_1, config_1_val);
 
-	/* Set spread factor */
+	/* Set spread factor and CRC mode */
 	uint8_t config_2_val = rfm96_read_reg(REG_MODEM_CONFIG_2);
 	config_2_val = (config_2_val & 0x0F) | (0xA << 4); //0xA = spread factor 12
+	config_2_val = (config_2_val & 0xFB) | (0x1 << 2); //0x1 = CRC on
 	rfm96_write_reg(REG_MODEM_CONFIG_2, config_2_val);
 
-	// debug
-	static volatile uint8_t debug_val = 0x00;
-	debug_val = rfm96_read_reg(REG_MODEM_CONFIG_2);
+	/* Read register value for status */
+	uint8_t reg_status = 0x00;
+	reg_status = rfm96_read_reg(REG_MODEM_CONFIG_2);
 
 	/* Put in standby mode */
 	rfm96_standby_mode();
 
-	return debug_val;
+	return reg_status;
 }
 /* SPI communication functions -----------------------------------------------*/
 /*

@@ -118,10 +118,12 @@ int main(void)
   	snr_std = std_dev(snr_list, expected_pkts, rssi_mean);
   	
   	/* Packet delivery rate */
-  	pdr = package_id.num / expected_pkts;
+  	pdr = (double)expected_pkts / (double)package_id.num;
 
   	/* Signal results ready to be displayed */
+  	BSP_LED_On(LED_GREEN);
 	lcd_display_str_delayed("RXDONE", DISPLAY_DELAY); 
+	wait_for_user_button();
 
   	/* Show results on display */
   	while(1)

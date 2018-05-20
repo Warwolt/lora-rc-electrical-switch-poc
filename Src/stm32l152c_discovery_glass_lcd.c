@@ -140,7 +140,8 @@ const uint16_t NumberMap[10]=
 uint32_t Digit[4];     /* Digit frame buffer */
 
 /* LCD BAR status: To save the bar setting after writing in LCD RAM memory */
-uint8_t LCDBar = BATTERYLEVEL_FULL;
+//uint8_t LCDBar = BATTERYLEVEL_FULL;
+uint8_t LCDBar = BATTERYLEVEL_OFF; // developer hack, turn LCDbar off!
 
 /**
   * @}

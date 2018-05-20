@@ -14,11 +14,14 @@ void system_init(void)
 	spi_init();
 	
 	/* LCD display initialization */
-	// LCd init causes conflict with the PD2 RFM96 RESET pin!
 	BSP_LCD_GLASS_Init();
 
 	/* Blue push button initialization */
 	BSP_PB_Init(BUTTON_USER, BUTTON_MODE_GPIO);
+
+	/* Initialize LEDs */
+	BSP_LED_Init(LED3);
+	BSP_LED_Init(LED4);
 }
 
 /**

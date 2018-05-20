@@ -42,7 +42,7 @@ int main(void)
 	while(BSP_PB_GetState(BUTTON_USER) != 0);
 	while(BSP_PB_GetState(BUTTON_USER) != 1);
 		
-	/* Infinite loop */
+	/* Continously transmit packages until reset */
 	while(1)
 	{	
 	  	/* Display number of sent packages */

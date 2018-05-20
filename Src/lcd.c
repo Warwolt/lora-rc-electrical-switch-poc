@@ -171,7 +171,6 @@ void MX_LCD_Init(void)
 	{
 		Error_Handler();
 	}
-
 }
 
 void HAL_LCD_MspInit(LCD_HandleTypeDef* lcdHandle)
